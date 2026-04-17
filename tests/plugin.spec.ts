@@ -7,6 +7,24 @@ import plugin, { buildEditorLaunchCommand, type EditorAvailability } from "../sr
 import { pinToolbarSlotToEnd } from "../src/ui/host-toolbar-alignment.ts";
 import { ensureIsolatedWorkspacesEnabled } from "../scripts/e2e/manual-paperclip-verify-lib.js";
 
+async function withMockPlatform<T>(platform: NodeJS.Platform, run: () => Promise<T> | T): Promise<T> {
+  const descriptor = Object.getOwnPropertyDescriptor(process, "platform");
+  if (!descriptor?.configurable) {
+    throw new Error("process.platform is not configurable in this runtime.");
+  }
+
+  Object.defineProperty(process, "platform", {
+    configurable: true,
+    value: platform
+  });
+
+  try {
+    return await run();
+  } finally {
+    Object.defineProperty(process, "platform", descriptor);
+  }
+}
+
 test("declares the issue toolbar slot and required capabilities", () => {
   assert.ok(manifest.capabilities.includes("ui.action.register"));
   assert.ok(manifest.capabilities.includes("issues.read"));
@@ -44,11 +62,13 @@ test("reports availability for localhost issue workspaces", async () => {
     updatedAt: new Date().toISOString()
   });
 
-  const response = await harness.getData<EditorAvailability>("editor.availability", {
-    companyId: "company-1",
-    issueId: "issue-1",
-    hostOrigin: "http://localhost:3000"
-  });
+  const response = await withMockPlatform("darwin", () =>
+    harness.getData<EditorAvailability>("editor.availability", {
+      companyId: "company-1",
+      issueId: "issue-1",
+      hostOrigin: "http://localhost:3000"
+    })
+  );
 
   assert.equal(response.available, true);
   assert.deepEqual(response.editors, [{ id: "intellij-idea", label: "IntelliJ IDEA" }]);
@@ -128,11 +148,13 @@ test("prefers an issue's current execution workspace path when present", async (
     updatedAt: new Date().toISOString()
   });
 
-  const response = await harness.getData<EditorAvailability>("editor.availability", {
-    companyId: "company-1",
-    issueId: "issue-1",
-    hostOrigin: "http://127.0.0.1:3000"
-  });
+  const response = await withMockPlatform("darwin", () =>
+    harness.getData<EditorAvailability>("editor.availability", {
+      companyId: "company-1",
+      issueId: "issue-1",
+      hostOrigin: "http://127.0.0.1:3000"
+    })
+  );
 
   assert.equal(response.available, true);
   assert.equal(response.workspacePath, "/tmp/example-project-issue-1");
