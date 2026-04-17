@@ -1,0 +1,64 @@
+{
+  "name": "paperclip-editor-plugin",
+  "version": "0.1.0",
+  "description": "Paperclip plugin that opens issue workspaces in local editors.",
+  "author": "Alvaro Sanchez",
+  "license": "MIT",
+  "type": "module",
+  "packageManager": "pnpm@10.33.0",
+  "homepage": "https://github.com/alvarosanchez/paperclip-editor-plugin#readme",
+  "bugs": {
+    "url": "https://github.com/alvarosanchez/paperclip-editor-plugin/issues"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/alvarosanchez/paperclip-editor-plugin.git"
+  },
+  "keywords": [
+    "paperclip",
+    "paperclip-plugin",
+    "intellij",
+    "idea",
+    "workspace",
+    "editor"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "engines": {
+    "node": ">=20"
+  },
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE"
+  ],
+  "paperclipPlugin": {
+    "manifest": "./dist/manifest.js",
+    "worker": "./dist/worker.js",
+    "ui": "./dist/ui/"
+  },
+  "scripts": {
+    "build": "node ./scripts/build.mjs",
+    "dev": "node ./scripts/build.mjs --watch",
+    "prepack": "pnpm build",
+    "pack:check": "npm pack --dry-run",
+    "test": "tsx --test tests/plugin.spec.ts",
+    "typecheck": "tsc --noEmit",
+    "verify": "pnpm typecheck && pnpm test && pnpm build && pnpm pack:check",
+    "verify:manual": "pnpm build && node ./scripts/e2e/manual-paperclip-verify.mjs"
+  },
+  "dependencies": {
+    "@paperclipai/plugin-sdk": "2026.416.0",
+    "react": "^19.2.5",
+    "react-dom": "^19.2.5"
+  },
+  "devDependencies": {
+    "@types/node": "24.12.2",
+    "@types/react": "19.2.14",
+    "@types/react-dom": "19.2.3",
+    "esbuild": "0.28.0",
+    "tsx": "4.21.0",
+    "typescript": "6.0.2"
+  }
+}
