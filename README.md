@@ -6,26 +6,26 @@
 [![Host](https://img.shields.io/badge/host-localhost_only-0ea5e9)](#security--scope)
 [![Platform](https://img.shields.io/badge/platform-macOS-111827)](#current-scope)
 
-Paperclip plugin that adds an `Open in` split button to the issue detail toolbar and launches the issue workspace in IntelliJ IDEA.
+Paperclip plugin that adds a generic `Open in` split button to the issue detail toolbar for local workspace actions.
 
-This plugin is intentionally local-first. It only activates when Paperclip is running on `localhost` or `127.0.0.1`, and it only opens workspaces that resolve to a real local path on the same machine.
+This plugin is intentionally local-first. It only activates when Paperclip is running on `localhost` or `127.0.0.1`, and it only acts on workspaces that resolve to a local path on the same machine.
 
 ## What it does
 
 - Adds a right-aligned `Open in` split button to the issue toolbar.
 - Uses the issue's realized execution workspace when one exists.
 - Falls back to the project's configured workspace when no execution workspace is active.
-- Launches IntelliJ IDEA with the selected workspace path.
+- Offers local actions for the selected workspace path.
 - Keeps the launcher hidden for non-local Paperclip instances.
 
 ## Current scope
 
 The current implementation is intentionally narrow:
 
-- Editor target: `IntelliJ IDEA`
+- Current actions: `IntelliJ IDEA`, `VS Code`, `Copy path to clipboard`
 - Supported launch platform: macOS
 - Host requirement: Paperclip served from `localhost` or `127.0.0.1`
-- Workspace requirement: the issue workspace path must exist on the same computer as the Paperclip instance
+- Workspace requirement: the issue workspace must resolve to a local path on the same computer as the Paperclip instance
 
 ## Security & scope
 
@@ -35,17 +35,20 @@ That restriction is deliberate:
 
 - opening a local IDE only makes sense when the workspace path is on the current machine
 - hiding the control on non-local hosts avoids presenting an action that cannot succeed
-- the worker only launches a curated command for IntelliJ IDEA on supported platforms
+- editor launchers use curated local commands instead of arbitrary shell input
+- non-launch actions operate only on the resolved local workspace path
 
 ## Installation
 
-This package is not published to npm yet. Until that release exists, install it from a local checkout:
+If you want to try the plugin from source, install it from a local checkout:
 
 ```bash
 npx -p node@20 -p paperclipai paperclipai plugin install --local /absolute/path/to/paperclip-editor-plugin
 ```
 
 After installation, open a local Paperclip issue page on `localhost` and look for the `Open in` split button in the issue toolbar.
+
+This repository is prepared for npm publication. After the package is published, you can install it through the standard Paperclip plugin flow using the published package name.
 
 ## Development
 
@@ -79,7 +82,6 @@ The manual harness currently prepares:
 The repository is prepared for public npm publishing:
 
 - package metadata includes `homepage`, `repository`, and `bugs`
+- `prepublishOnly` runs the full verification suite before `npm publish`
 - CI validates typecheck, tests, build, and package contents
 - `npm pack --dry-run` is part of the verification path
-
-When the npm package is published, this README can be updated with the final install command and npm badge.

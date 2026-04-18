@@ -1,4 +1,5 @@
 import { spawn } from "node:child_process";
+import { posix, win32 } from "node:path";
 import { definePlugin, runWorker, type PluginContext, type PluginWorkspace } from "@paperclipai/plugin-sdk";
 
 export interface EditorChoice {
@@ -18,21 +19,26 @@ export interface LaunchCommand {
   args: string[];
 }
 
-const DEFAULT_EDITOR: EditorChoice = {
-  id: "intellij-idea",
-  label: "IntelliJ IDEA"
-};
+const EDITOR_CHOICES: EditorChoice[] = [
+  {
+    id: "intellij-idea",
+    label: "IntelliJ IDEA"
+  },
+  {
+    id: "vs-code",
+    label: "VS Code"
+  }
+];
 
-const PATH_LIKE_PATTERN = /[\\/]/;
-const WINDOWS_DRIVE_PATH_PATTERN = /^[A-Za-z]:[\\/]/;
+const DEFAULT_EDITOR = EDITOR_CHOICES[0]!;
 
 function readString(input: Record<string, unknown>, key: string): string {
   const value = input[key];
   return typeof value === "string" ? value.trim() : "";
 }
 
-function looksLikePath(value: string): boolean {
-  return PATH_LIKE_PATTERN.test(value) || WINDOWS_DRIVE_PATH_PATTERN.test(value);
+function isAbsoluteLocalPath(value: string): boolean {
+  return posix.isAbsolute(value) || win32.isAbsolute(value);
 }
 
 function sanitizeWorkspacePath(pathValue: unknown): string {
@@ -41,7 +47,7 @@ function sanitizeWorkspacePath(pathValue: unknown): string {
   }
 
   const trimmed = pathValue.trim();
-  return trimmed.length > 0 && looksLikePath(trimmed) ? trimmed : "";
+  return trimmed.length > 0 && isAbsoluteLocalPath(trimmed) ? trimmed : "";
 }
 
 function readCurrentExecutionWorkspacePath(issue: Record<string, unknown> | null): string {
@@ -107,7 +113,11 @@ async function resolveIssueWorkspace(
 
   const preferredWorkspace = await ctx.projects.getWorkspaceForIssue(issueId, companyId);
   const preferredWorkspacePath = sanitizeWorkspacePath(preferredWorkspace?.path);
-  if (preferredWorkspace && preferredWorkspacePath) {
+  if (preferredWorkspace) {
+    if (!preferredWorkspacePath) {
+      throw new Error("The selected workspace does not expose a local path.");
+    }
+
     return {
       workspace: preferredWorkspace,
       workspacePath: preferredWorkspacePath
@@ -133,18 +143,32 @@ export function buildEditorLaunchCommand(
   workspacePath: string,
   platform: NodeJS.Platform = process.platform
 ): LaunchCommand | null {
-  if (editorId !== DEFAULT_EDITOR.id) {
+  if (platform !== "darwin") {
     return null;
   }
 
-  if (platform === "darwin") {
+  if (editorId === "intellij-idea") {
     return {
       command: "open",
       args: ["-a", "IntelliJ IDEA", workspacePath]
     };
   }
 
+  if (editorId === "vs-code") {
+    return {
+      command: "open",
+      args: ["-a", "Visual Studio Code", workspacePath]
+    };
+  }
+
   return null;
+}
+
+function listSupportedEditors(
+  workspacePath: string,
+  platform: NodeJS.Platform = process.platform
+): EditorChoice[] {
+  return EDITOR_CHOICES.filter((editor) => buildEditorLaunchCommand(editor.id, workspacePath, platform));
 }
 
 const plugin = definePlugin({
@@ -165,15 +189,15 @@ const plugin = definePlugin({
 
       try {
         const { workspacePath } = await resolveIssueWorkspace(ctx, companyId, issueId);
-        const launchCommand = buildEditorLaunchCommand(DEFAULT_EDITOR.id, workspacePath);
+        const editors = listSupportedEditors(workspacePath);
 
-        if (!launchCommand) {
-          return createUnavailableAvailability("IntelliJ IDEA launching is not supported on this platform.");
+        if (editors.length === 0) {
+          return createUnavailableAvailability("Editor launching is not supported on this platform.");
         }
 
         return {
           available: true,
-          editors: [DEFAULT_EDITOR],
+          editors,
           workspacePath
         } satisfies EditorAvailability;
       } catch (error) {

@@ -4,6 +4,7 @@ import { createTestHarness } from "@paperclipai/plugin-sdk/testing";
 
 import manifest from "../src/manifest.ts";
 import plugin, { buildEditorLaunchCommand, type EditorAvailability } from "../src/worker.ts";
+import { copyWorkspacePath } from "../src/ui/index.tsx";
 import { pinToolbarSlotToEnd } from "../src/ui/host-toolbar-alignment.ts";
 import { ensureIsolatedWorkspacesEnabled } from "../scripts/e2e/manual-paperclip-verify-lib.js";
 
@@ -71,7 +72,10 @@ test("reports availability for localhost issue workspaces", async () => {
   );
 
   assert.equal(response.available, true);
-  assert.deepEqual(response.editors, [{ id: "intellij-idea", label: "IntelliJ IDEA" }]);
+  assert.deepEqual(response.editors, [
+    { id: "intellij-idea", label: "IntelliJ IDEA" },
+    { id: "vs-code", label: "VS Code" }
+  ]);
   assert.equal(response.workspacePath, "/tmp/example-project");
 });
 
@@ -118,6 +122,13 @@ test("builds the IntelliJ launch command for macOS", () => {
   });
 });
 
+test("builds the VS Code launch command for macOS", () => {
+  assert.deepEqual(buildEditorLaunchCommand("vs-code", "/tmp/example-project", "darwin"), {
+    command: "open",
+    args: ["-a", "Visual Studio Code", "/tmp/example-project"]
+  });
+});
+
 test("prefers an issue's current execution workspace path when present", async () => {
   const harness = createTestHarness({ manifest });
   await plugin.definition.setup(harness.ctx);
@@ -158,6 +169,62 @@ test("prefers an issue's current execution workspace path when present", async (
 
   assert.equal(response.available, true);
   assert.equal(response.workspacePath, "/tmp/example-project-issue-1");
+});
+
+test("hides availability when the workspace path is not a local absolute path", async () => {
+  const harness = createTestHarness({ manifest });
+  await plugin.definition.setup(harness.ctx);
+
+  harness.seed({
+    issues: [
+      {
+        id: "issue-1",
+        companyId: "company-1",
+        projectId: "project-1",
+        title: "Relative workspace issue"
+      } as never
+    ]
+  });
+
+  harness.ctx.projects.getWorkspaceForIssue = async () => ({
+    id: "workspace-1",
+    companyId: "company-1",
+    projectId: "project-1",
+    name: "Relative workspace",
+    path: "relative/example-project",
+    isPrimary: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  });
+
+  const response = await withMockPlatform("darwin", () =>
+    harness.getData<EditorAvailability>("editor.availability", {
+      companyId: "company-1",
+      issueId: "issue-1",
+      hostOrigin: "http://localhost:3000"
+    })
+  );
+
+  assert.equal(response.available, false);
+  assert.match(response.reason ?? "", /local path/i);
+});
+
+test("copyWorkspacePath writes the resolved path to the clipboard", async () => {
+  let copiedPath = "";
+
+  const result = await copyWorkspacePath("/tmp/example-project", async (value) => {
+    copiedPath = value;
+  });
+
+  assert.equal(result, "/tmp/example-project");
+  assert.equal(copiedPath, "/tmp/example-project");
+});
+
+test("copyWorkspacePath rejects missing paths", async () => {
+  await assert.rejects(
+    () => copyWorkspacePath("   ", async () => {}),
+    /No workspace path/i
+  );
 });
 
 test("pins the host toolbar wrapper to the end of the row", () => {
