@@ -32,35 +32,17 @@ jobs:
           node-version: 20
           cache: pnpm
 
-      - name: Derive release version from tag
-        id: release_version
-        env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: |
-          VERSION="${RELEASE_TAG#v}"
-          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
-            echo "Release tag '$RELEASE_TAG' is not a valid semver tag."
-            exit 1
-          fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
-
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Sync package version from release tag
+        id: release_version
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: pnpm release:sync-version "$RELEASE_TAG"
-
-      - name: Verify package version matches release tag
-        env:
-          RELEASE_VERSION: ${{ steps.release_version.outputs.version }}
         run: |
-          PACKAGE_VERSION="$(node -p "JSON.parse(require('node:fs').readFileSync('./package.json', 'utf8')).version")"
-          if [[ "$PACKAGE_VERSION" != "$RELEASE_VERSION" ]]; then
-            echo "package.json version ($PACKAGE_VERSION) does not match release tag version ($RELEASE_VERSION)."
-            exit 1
-          fi
+          pnpm release:sync-version "$RELEASE_TAG"
+          VERSION="$(node -p "JSON.parse(require('node:fs').readFileSync('./package.json', 'utf8')).version")"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Verify package
         run: pnpm verify
@@ -91,39 +73,21 @@ jobs:
       - name: Set up Node.js
         uses: actions/setup-node@53b83947a5a98c8d113130e565377fae1a50d02f # v6
         with:
-          node-version: 24.15.0
+          node-version: 20
           registry-url: https://registry.npmjs.org
           cache: pnpm
-
-      - name: Derive release version from tag
-        id: release_version
-        env:
-          RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: |
-          VERSION="${RELEASE_TAG#v}"
-          if [[ ! "$VERSION" =~ ^[0-9]+\.[0-9]+\.[0-9]+([.-][0-9A-Za-z.-]+)?$ ]]; then
-            echo "Release tag '$RELEASE_TAG' is not a valid semver tag."
-            exit 1
-          fi
-          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Install dependencies
         run: pnpm install --frozen-lockfile
 
       - name: Sync package version from release tag
+        id: release_version
         env:
           RELEASE_TAG: ${{ github.event.release.tag_name }}
-        run: pnpm release:sync-version "$RELEASE_TAG"
-
-      - name: Verify package version matches release tag
-        env:
-          RELEASE_VERSION: ${{ steps.release_version.outputs.version }}
         run: |
-          PACKAGE_VERSION="$(node -p "JSON.parse(require('node:fs').readFileSync('./package.json', 'utf8')).version")"
-          if [[ "$PACKAGE_VERSION" != "$RELEASE_VERSION" ]]; then
-            echo "package.json version ($PACKAGE_VERSION) does not match release tag version ($RELEASE_VERSION)."
-            exit 1
-          fi
+          pnpm release:sync-version "$RELEASE_TAG"
+          VERSION="$(node -p "JSON.parse(require('node:fs').readFileSync('./package.json', 'utf8')).version")"
+          echo "version=$VERSION" >> "$GITHUB_OUTPUT"
 
       - name: Publish to npm
         run: npm publish --access public --provenance

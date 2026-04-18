@@ -10,12 +10,18 @@ test("accepts semver release tags and prerelease versions", () => {
   assert.equal(resolveReleaseVersion("v1.2.3"), "1.2.3");
   assert.equal(resolveReleaseVersion("1.2.3-beta.1"), "1.2.3-beta.1");
   assert.equal(resolveReleaseVersion("  v2.0.0-rc.4  "), "2.0.0-rc.4");
+  assert.equal(resolveReleaseVersion("1.2.3+build.5"), "1.2.3+build.5");
+  assert.equal(resolveReleaseVersion("v1.2.3-rc.1+build.5"), "1.2.3-rc.1+build.5");
 });
 
 test("rejects invalid release tags", () => {
   assert.equal(resolveReleaseVersion("release-1.2.3"), null);
   assert.equal(resolveReleaseVersion("1.2"), null);
   assert.equal(resolveReleaseVersion(""), null);
+  assert.equal(resolveReleaseVersion("1.2.3.alpha"), null);
+  assert.equal(resolveReleaseVersion("1.2.3..beta"), null);
+  assert.equal(resolveReleaseVersion("1.2.3.-rc.1"), null);
+  assert.equal(resolveReleaseVersion("01.2.3"), null);
 });
 
 test("updates package.json version in place", async () => {

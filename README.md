@@ -82,7 +82,7 @@ The repository is prepared for public npm publishing:
 - package metadata includes `homepage`, `repository`, and `bugs`
 - CI validates typecheck, tests, build, and package contents
 - GitHub Releases with semver tags publish to npm via `.github/workflows/release.yml`
-- the release workflow stamps `package.json` from the release tag and syncs that version back to the release branch after publish
+- The release workflow stamps `package.json` from the release tag and syncs that version back to the release branch after publish
 - `npm pack --dry-run` is part of the verification path
 
 When the npm package is published, this README can be updated with the final install command and npm badge.
