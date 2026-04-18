@@ -1,0 +1,94 @@
+{
+  "$schema": "https://docs.renovatebot.com/renovate-schema.json",
+  "extends": [
+    "config:recommended",
+    ":configMigration",
+    ":dependencyDashboard",
+    ":automergePr",
+    ":automergeRequireAllStatusChecks"
+  ],
+  "timezone": "Europe/Madrid",
+  "labels": [
+    "dependencies"
+  ],
+  "enabledManagers": [
+    "npm",
+    "github-actions"
+  ],
+  "prConcurrentLimit": 5,
+  "prHourlyLimit": 2,
+  "packageRules": [
+    {
+      "description": "Require dashboard approval before opening major upgrade PRs.",
+      "matchUpdateTypes": [
+        "major"
+      ],
+      "dependencyDashboardApproval": true
+    },
+    {
+      "description": "Group routine GitHub Actions updates and automerge low-risk releases after CI passes.",
+      "matchManagers": [
+        "github-actions"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "digest"
+      ],
+      "groupName": "github actions (non-major)",
+      "automerge": true
+    },
+    {
+      "description": "Group runtime dependency updates for manual review.",
+      "matchManagers": [
+        "npm"
+      ],
+      "matchDepTypes": [
+        "dependencies"
+      ],
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "digest"
+      ],
+      "groupName": "npm production dependencies",
+      "automerge": false
+    },
+    {
+      "description": "Group pre-1.0 development dependency updates for manual review.",
+      "matchManagers": [
+        "npm"
+      ],
+      "matchDepTypes": [
+        "devDependencies"
+      ],
+      "matchCurrentVersion": "/^0/",
+      "matchUpdateTypes": [
+        "minor",
+        "patch",
+        "pin",
+        "digest"
+      ],
+      "groupName": "npm development dependencies (pre-1.0)",
+      "automerge": false
+    },
+    {
+      "description": "Group stable development dependency updates and automerge low-risk releases after CI passes.",
+      "matchManagers": [
+        "npm"
+      ],
+      "matchDepTypes": [
+        "devDependencies"
+      ],
+      "matchCurrentVersion": "!/^0/",
+      "matchUpdateTypes": [
+        "minor",
+        "patch"
+      ],
+      "groupName": "npm development dependencies",
+      "automerge": true
+    }
+  ]
+}

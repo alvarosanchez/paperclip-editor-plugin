@@ -43,7 +43,8 @@
     "dev": "node ./scripts/build.mjs --watch",
     "prepack": "pnpm build",
     "pack:check": "npm pack --dry-run",
-    "test": "tsx --test tests/plugin.spec.ts",
+    "release:sync-version": "node ./scripts/sync-release-version.mjs",
+    "test": "tsx --test tests/*.spec.ts",
     "typecheck": "tsc --noEmit",
     "verify": "pnpm typecheck && pnpm test && pnpm build && pnpm pack:check",
     "verify:manual": "pnpm build && node ./scripts/e2e/manual-paperclip-verify.mjs"
