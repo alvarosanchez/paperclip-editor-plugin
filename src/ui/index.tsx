@@ -21,6 +21,10 @@ interface EditorAvailability {
 
 const LOCAL_HOSTNAMES = new Set(["localhost", "127.0.0.1"]);
 const PRIMARY_EDITOR_ID = "intellij-idea";
+const PRIMARY_EDITOR: EditorChoice = {
+  id: PRIMARY_EDITOR_ID,
+  label: "IntelliJ IDEA"
+};
 
 const containerStyles: React.CSSProperties = {
   display: "inline-flex",
@@ -116,6 +120,22 @@ const intellijIconStyles: React.CSSProperties = {
   overflow: "hidden"
 };
 
+const genericBadgeStyles: React.CSSProperties = {
+  width: 16,
+  height: 16,
+  borderRadius: 4,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flex: "0 0 auto",
+  background: "rgba(255, 255, 255, 0.12)",
+  color: "rgba(255, 255, 255, 0.9)",
+  fontSize: 8,
+  fontWeight: 700,
+  letterSpacing: 0.3,
+  textTransform: "uppercase"
+};
+
 const chevronIconStyles: React.CSSProperties = {
   display: "block",
   width: 14,
@@ -165,10 +185,59 @@ function readErrorMessage(error: unknown): string {
   return "Unknown error";
 }
 
+export async function copyWorkspacePath(
+  workspacePath: string,
+  writeText?: (value: string) => Promise<void>
+): Promise<string> {
+  const trimmedPath = workspacePath.trim();
+  if (!trimmedPath) {
+    throw new Error("No workspace path is available to copy.");
+  }
+
+  if (!writeText) {
+    throw new Error("Clipboard access is not available.");
+  }
+
+  await writeText(trimmedPath);
+  return trimmedPath;
+}
+
+export function getEditorBadgeLabel(editor: EditorChoice): string | null {
+  if (editor.id === PRIMARY_EDITOR_ID) {
+    return null;
+  }
+
+  if (editor.id === "vs-code") {
+    return "VS";
+  }
+
+  const initials = editor.label
+    .split(/\s+/)
+    .map((word) => word.trim()[0] ?? "")
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  return initials || "ED";
+}
+
 function IntelliJBadge(): React.JSX.Element {
   return (
     <span style={intellijBadgeStyles}>
       <img src={IDEA_ICON_DATA_URI} alt="" aria-hidden="true" style={intellijIconStyles} />
+    </span>
+  );
+}
+
+function EditorBadge({ editor }: { editor: EditorChoice }): React.JSX.Element {
+  const badgeLabel = getEditorBadgeLabel(editor);
+  if (badgeLabel === null) {
+    return <IntelliJBadge />;
+  }
+
+  return (
+    <span style={genericBadgeStyles} aria-hidden="true">
+      {badgeLabel}
     </span>
   );
 }
@@ -218,10 +287,11 @@ export function EditorIssueToolbarButton(): React.JSX.Element | null {
   const availabilityResult = usePluginData<EditorAvailability>("editor.availability", availabilityParams);
   const availability = availabilityResult.data;
   const availabilityIsGood = availability?.available ?? false;
+  const primaryEditor = availability?.editors.find((editor) => editor.id === PRIMARY_EDITOR_ID) ?? PRIMARY_EDITOR;
   const menuPanelStyles = useMemo<React.CSSProperties>(() => ({
     ...menuStyles,
-    minWidth: (availability?.editors.length ?? 0) > 1 ? 220 : 176
-  }), [availability?.editors.length]);
+    minWidth: 220
+  }), []);
   const primaryButtonComputedStyles = useMemo<React.CSSProperties>(() => ({
     ...primaryButtonStyles,
     ...(busy
@@ -283,7 +353,7 @@ export function EditorIssueToolbarButton(): React.JSX.Element | null {
     return null;
   }
 
-  async function handleLaunch(editorId = PRIMARY_EDITOR_ID) {
+  async function handleLaunch(editor: EditorChoice = primaryEditor) {
     if (busy) {
       return;
     }
@@ -294,21 +364,53 @@ export function EditorIssueToolbarButton(): React.JSX.Element | null {
       await launchAction({
         companyId: companyId ?? undefined,
         issueId: entityId ?? undefined,
-        editorId,
+        editorId: editor.id,
         hostOrigin
       });
       toast({
-        title: "Launching IntelliJ IDEA",
+        title: `Launching ${editor.label}`,
         tone: "success",
         body: availability?.workspacePath ?? undefined,
-        dedupeKey: "editor.launch"
+        dedupeKey: `editor.launch.${editor.id}`
       });
     } catch (error) {
       toast({
-        title: "Unable to launch IntelliJ IDEA",
+        title: `Unable to launch ${editor.label}`,
         tone: "error",
         body: readErrorMessage(error),
-        dedupeKey: "editor.launch:error"
+        dedupeKey: `editor.launch.${editor.id}:error`
+      });
+    } finally {
+      setBusy(false);
+    }
+  }
+
+  async function handleCopyPath() {
+    if (busy) {
+      return;
+    }
+
+    setMenuOpen(false);
+    setBusy(true);
+    try {
+      const workspacePath = await copyWorkspacePath(
+        availability?.workspacePath ?? "",
+        typeof navigator !== "undefined" && navigator.clipboard?.writeText
+          ? (value) => navigator.clipboard.writeText(value)
+          : undefined
+      );
+      toast({
+        title: "Copied workspace path",
+        tone: "success",
+        body: workspacePath,
+        dedupeKey: "editor.copy-path"
+      });
+    } catch (error) {
+      toast({
+        title: "Unable to copy workspace path",
+        tone: "error",
+        body: readErrorMessage(error),
+        dedupeKey: "editor.copy-path:error"
       });
     } finally {
       setBusy(false);
@@ -321,13 +423,13 @@ export function EditorIssueToolbarButton(): React.JSX.Element | null {
         type="button"
         style={primaryButtonComputedStyles}
         onClick={() => {
-          void handleLaunch();
+          void handleLaunch(primaryEditor);
         }}
         disabled={busy}
-        aria-label="Open workspace in IntelliJ IDEA"
-        title="Open workspace in IntelliJ IDEA"
+        aria-label={`Open workspace in ${primaryEditor.label}`}
+        title={`Open workspace in ${primaryEditor.label}`}
       >
-        <IntelliJBadge />
+        <EditorBadge editor={primaryEditor} />
       </button>
       <button
         type="button"
@@ -349,14 +451,23 @@ export function EditorIssueToolbarButton(): React.JSX.Element | null {
               type="button"
               style={menuItemStyles}
               onClick={() => {
-                void handleLaunch(editor.id);
+                void handleLaunch(editor);
               }}
               role="menuitem"
             >
-              <IntelliJBadge />
               <span style={menuLabelStyles}>{editor.label}</span>
             </button>
           ))}
+          <button
+            type="button"
+            style={menuItemStyles}
+            onClick={() => {
+              void handleCopyPath();
+            }}
+            role="menuitem"
+          >
+            <span style={menuLabelStyles}>Copy path to clipboard</span>
+          </button>
         </div>
       )}
     </div>

@@ -17,10 +17,12 @@
   "keywords": [
     "paperclip",
     "paperclip-plugin",
-    "intellij",
-    "idea",
     "workspace",
-    "editor"
+    "editor",
+    "ide",
+    "intellij",
+    "vscode",
+    "clipboard"
   ],
   "publishConfig": {
     "access": "public"
@@ -42,6 +44,7 @@
     "build": "node ./scripts/build.mjs",
     "dev": "node ./scripts/build.mjs --watch",
     "prepack": "pnpm build",
+    "prepublishOnly": "pnpm verify",
     "pack:check": "npm pack --dry-run",
     "test": "tsx --test tests/plugin.spec.ts",
     "typecheck": "tsc --noEmit",
