@@ -120,6 +120,22 @@ const intellijIconStyles: React.CSSProperties = {
   overflow: "hidden"
 };
 
+const genericBadgeStyles: React.CSSProperties = {
+  width: 16,
+  height: 16,
+  borderRadius: 4,
+  display: "inline-flex",
+  alignItems: "center",
+  justifyContent: "center",
+  flex: "0 0 auto",
+  background: "rgba(255, 255, 255, 0.12)",
+  color: "rgba(255, 255, 255, 0.9)",
+  fontSize: 8,
+  fontWeight: 700,
+  letterSpacing: 0.3,
+  textTransform: "uppercase"
+};
+
 const chevronIconStyles: React.CSSProperties = {
   display: "block",
   width: 14,
@@ -186,10 +202,42 @@ export async function copyWorkspacePath(
   return trimmedPath;
 }
 
+export function getEditorBadgeLabel(editor: EditorChoice): string | null {
+  if (editor.id === PRIMARY_EDITOR_ID) {
+    return null;
+  }
+
+  if (editor.id === "vs-code") {
+    return "VS";
+  }
+
+  const initials = editor.label
+    .split(/\s+/)
+    .map((word) => word.trim()[0] ?? "")
+    .join("")
+    .slice(0, 2)
+    .toUpperCase();
+
+  return initials || "ED";
+}
+
 function IntelliJBadge(): React.JSX.Element {
   return (
     <span style={intellijBadgeStyles}>
       <img src={IDEA_ICON_DATA_URI} alt="" aria-hidden="true" style={intellijIconStyles} />
+    </span>
+  );
+}
+
+function EditorBadge({ editor }: { editor: EditorChoice }): React.JSX.Element {
+  const badgeLabel = getEditorBadgeLabel(editor);
+  if (badgeLabel === null) {
+    return <IntelliJBadge />;
+  }
+
+  return (
+    <span style={genericBadgeStyles} aria-hidden="true">
+      {badgeLabel}
     </span>
   );
 }
@@ -381,7 +429,7 @@ export function EditorIssueToolbarButton(): React.JSX.Element | null {
         aria-label={`Open workspace in ${primaryEditor.label}`}
         title={`Open workspace in ${primaryEditor.label}`}
       >
-        <IntelliJBadge />
+        <EditorBadge editor={primaryEditor} />
       </button>
       <button
         type="button"

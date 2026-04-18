@@ -4,7 +4,7 @@ import { createTestHarness } from "@paperclipai/plugin-sdk/testing";
 
 import manifest from "../src/manifest.ts";
 import plugin, { buildEditorLaunchCommand, type EditorAvailability } from "../src/worker.ts";
-import { copyWorkspacePath } from "../src/ui/index.tsx";
+import { copyWorkspacePath, getEditorBadgeLabel } from "../src/ui/index.tsx";
 import { pinToolbarSlotToEnd } from "../src/ui/host-toolbar-alignment.ts";
 import { ensureIsolatedWorkspacesEnabled } from "../scripts/e2e/manual-paperclip-verify-lib.js";
 
@@ -209,6 +209,44 @@ test("hides availability when the workspace path is not a local absolute path", 
   assert.match(response.reason ?? "", /local path/i);
 });
 
+test("hides availability when the workspace path is a UNC network path", async () => {
+  const harness = createTestHarness({ manifest });
+  await plugin.definition.setup(harness.ctx);
+
+  harness.seed({
+    issues: [
+      {
+        id: "issue-1",
+        companyId: "company-1",
+        projectId: "project-1",
+        title: "UNC workspace issue"
+      } as never
+    ]
+  });
+
+  harness.ctx.projects.getWorkspaceForIssue = async () => ({
+    id: "workspace-1",
+    companyId: "company-1",
+    projectId: "project-1",
+    name: "UNC workspace",
+    path: "\\\\server\\share\\repo",
+    isPrimary: true,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString()
+  });
+
+  const response = await withMockPlatform("darwin", () =>
+    harness.getData<EditorAvailability>("editor.availability", {
+      companyId: "company-1",
+      issueId: "issue-1",
+      hostOrigin: "http://localhost:3000"
+    })
+  );
+
+  assert.equal(response.available, false);
+  assert.match(response.reason ?? "", /local path/i);
+});
+
 test("copyWorkspacePath writes the resolved path to the clipboard", async () => {
   let copiedPath = "";
 
@@ -225,6 +263,12 @@ test("copyWorkspacePath rejects missing paths", async () => {
     () => copyWorkspacePath("   ", async () => {}),
     /No workspace path/i
   );
+});
+
+test("getEditorBadgeLabel returns a generic badge for non-IntelliJ editors", () => {
+  assert.equal(getEditorBadgeLabel({ id: "intellij-idea", label: "IntelliJ IDEA" }), null);
+  assert.equal(getEditorBadgeLabel({ id: "vs-code", label: "VS Code" }), "VS");
+  assert.equal(getEditorBadgeLabel({ id: "zed", label: "Zed Editor" }), "ZE");
 });
 
 test("pins the host toolbar wrapper to the end of the row", () => {

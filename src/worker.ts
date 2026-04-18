@@ -38,6 +38,10 @@ function readString(input: Record<string, unknown>, key: string): string {
 }
 
 function isAbsoluteLocalPath(value: string): boolean {
+  if (value.startsWith("\\\\") || value.startsWith("//")) {
+    return false;
+  }
+
   return posix.isAbsolute(value) || win32.isAbsolute(value);
 }
 
