@@ -63,6 +63,7 @@ Useful scripts:
 - `pnpm test`
 - `pnpm build`
 - `pnpm pack:check`
+- `pnpm release:sync-version <tag-or-version>`
 - `pnpm verify`
 - `pnpm verify:manual`
 
@@ -84,4 +85,6 @@ The repository is prepared for public npm publishing:
 - package metadata includes `homepage`, `repository`, and `bugs`
 - `prepublishOnly` runs the full verification suite before `npm publish`
 - CI validates typecheck, tests, build, and package contents
+- GitHub Releases with semver tags publish to npm via `.github/workflows/release.yml`
+- The release workflow stamps `package.json` from the release tag and syncs that version back to the release branch after publish
 - `npm pack --dry-run` is part of the verification path
