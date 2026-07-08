@@ -19,8 +19,8 @@ importers:
         version: 19.2.5(react@19.2.5)
     devDependencies:
       '@types/node':
-        specifier: 24.13.2
-        version: 24.13.2
+        specifier: 24.13.3
+        version: 24.13.3
       '@types/react':
         specifier: 19.2.17
         version: 19.2.17
@@ -207,8 +207,8 @@ packages:
   '@paperclipai/shared@2026.416.0':
     resolution: {integrity: sha512-ORG3f8X1Z4m/K4rbIlWP16UqPWlGSTiFtCAQajDddclY+b/Ubfn0M6Xh54+zkjy1TGVePnLGuif8EKDkX5Sb4g==}
 
-  '@types/node@24.13.2':
-    resolution: {integrity: sha512-fRa09kZTgu8o71KFcDjUFuc7F+dEbZYZmkI0mg5YBTRs0yMKjYHsq/c0urDKeDb+D5qVgXOdFcuu+DZPKOITwA==}
+  '@types/node@24.13.3':
+    resolution: {integrity: sha512-Dh8vAsV36ig5wa9OX4pXvMc9D3Veibfw2wix0CUwYODLD8nkj9UsLjASr49nPg+2eKzxhBV+v7L8pXvT4e639Q==}
 
   '@types/react-dom@19.2.3':
     resolution: {integrity: sha512-jp2L/eY6fn+KgVVQAOqYItbF0VY/YApe5Mz2F0aykSO8gx31bYCZyvSeYxCHKvzHG5eZjc+zyaS5BrBWya2+kQ==}
@@ -350,7 +350,7 @@ snapshots:
     dependencies:
       zod: 3.25.76
 
-  '@types/node@24.13.2':
+  '@types/node@24.13.3':
     dependencies:
       undici-types: 7.18.2
 
